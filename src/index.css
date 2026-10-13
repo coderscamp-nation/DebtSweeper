@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+:root {
+  --neon-cyan: #35f3ff;
+  --neon-pink: #ff3d9e;
+  --neon-lime: #b7ff2e;
+  --neon-amber: #ffc400;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #05030f;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: "Rajdhani", system-ui, sans-serif;
+  color: #e8ecff;
+  user-select: none;
+}
+
+.font-display {
+  font-family: "Orbitron", "Rajdhani", system-ui, sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.scan::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.035) 0px,
+    rgba(255, 255, 255, 0.035) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+}
+
+.glow-cyan {
+  box-shadow: 0 0 22px rgba(53, 243, 255, 0.35), inset 0 0 14px rgba(53, 243, 255, 0.12);
+}
+.glow-pink {
+  box-shadow: 0 0 22px rgba(255, 61, 158, 0.38), inset 0 0 14px rgba(255, 61, 158, 0.12);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px currentColor, 0 0 28px currentColor;
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.anim-in {
+  animation: floatUp 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+.pulse-ring {
+  animation: pulseRing 1.6s ease-out infinite;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #35f3ff55;
+  border-radius: 99px;
+}
