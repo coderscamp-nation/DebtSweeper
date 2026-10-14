@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Game } from "./game/Game";
 import { audio } from "./game/audio";
 import type { Difficulty, HudState, UpgradeId } from "./game/types";
-import { HudTop, HudBottom, HudOverlay } from "./components/Hud";
+import { HudTop, HudBottom, HudOverlay, AudioButtons } from "./components/Hud";
 import {
   GameOverScreen,
   PauseScreen,
@@ -65,7 +65,39 @@ export default function App() {
   const [difficulty, setDifficulty] = useState<Difficulty>(
     () => (localStorage.getItem("debtsweeper.diff") as Difficulty) || "medium",
   );
-  const [muted, setMuted] = useState(false);
+  const [musicMuted, setMusicMuted] = useState(
+    () => localStorage.getItem("debtsweeper.musicMuted") === "1",
+  );
+  const [sfxMuted, setSfxMuted] = useState(
+    () => localStorage.getItem("debtsweeper.sfxMuted") === "1",
+  );
+
+  const toggleMusic = useCallback(() => {
+    setMusicMuted((m) => {
+      const next = !m;
+      localStorage.setItem("debtsweeper.musicMuted", next ? "1" : "0");
+      audio.resume();
+      audio.setMusicMuted(next);
+      return next;
+    });
+  }, []);
+
+  const toggleSfx = useCallback(() => {
+    setSfxMuted((m) => {
+      const next = !m;
+      localStorage.setItem("debtsweeper.sfxMuted", next ? "1" : "0");
+      audio.resume();
+      audio.setSfxMuted(next);
+      if (!next) audio.ui();
+      return next;
+    });
+  }, []);
+
+  // apply persisted mutes to the engine on boot
+  useEffect(() => {
+    audio.setMusicMuted(localStorage.getItem("debtsweeper.musicMuted") === "1");
+    audio.setSfxMuted(localStorage.getItem("debtsweeper.sfxMuted") === "1");
+  }, []);
   const [result, setResult] = useState({
     score: 0,
     wave: 0,
@@ -133,12 +165,13 @@ export default function App() {
 
   const start = useCallback(() => {
     audio.resume();
-    audio.setMuted(muted);
+    audio.setMusicMuted(musicMuted);
+    audio.setSfxMuted(sfxMuted);
     setHud(emptyHud);
     localStorage.setItem("debtsweeper.diff", difficulty);
     gameRef.current?.start(difficulty);
     setScreen("playing");
-  }, [difficulty, muted]);
+  }, [difficulty, musicMuted, sfxMuted]);
 
   const pause = useCallback(() => {
     if (!gameRef.current) return;
@@ -218,7 +251,18 @@ export default function App() {
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#05030f]">
       {/* ---- HUD above the canvas ---- */}
-      {screen === "playing" && <HudTop hud={hud} onPause={pause} />}
+      {screen === "playing" && (
+        <HudTop
+          hud={hud}
+          onPause={pause}
+          audio={{
+            musicMuted,
+            sfxMuted,
+            onToggleMusic: toggleMusic,
+            onToggleSfx: toggleSfx,
+          }}
+        />
+      )}
 
       {/* ---- Playfield ---- */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -259,19 +303,17 @@ export default function App() {
       {/* ---- HUD below the canvas ---- */}
       {screen === "playing" && <HudBottom hud={hud} />}
 
-      {/* Mute toggle */}
-      <button
-        onClick={() => {
-          const m = !muted;
-          setMuted(m);
-          audio.resume();
-          audio.setMuted(m);
-        }}
-        className="absolute bottom-2 left-2 z-30 grid h-8 w-8 place-items-center rounded-lg border border-white/15 bg-black/60 text-xs text-white/70 backdrop-blur-sm active:scale-95"
-        aria-label="Toggle sound"
-      >
-        {muted ? "🔇" : "🔊"}
-      </button>
+      {/* Audio controls on non-playing screens (during play they live next to pause) */}
+      {screen !== "playing" && (
+        <div className="absolute right-3 top-3 z-30 flex gap-2">
+          <AudioButtons
+            musicMuted={musicMuted}
+            sfxMuted={sfxMuted}
+            onToggleMusic={toggleMusic}
+            onToggleSfx={toggleSfx}
+          />
+        </div>
+      )}
 
       {screen === "menu" && (
         <StartScreen

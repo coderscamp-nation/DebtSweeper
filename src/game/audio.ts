@@ -75,6 +75,9 @@ export class AudioEngine {
   nextTime = 0;
   playing = false;
   muted = false;
+  musicMuted = false;
+  sfxMuted = false;
+  musicBase = 0.34;
   intensity = 0;
 
   init() {
@@ -84,7 +87,7 @@ export class AudioEngine {
     const ctx = new AC();
     this.ctx = ctx;
     this.master = ctx.createGain();
-    this.master.gain.value = this.muted ? 0 : 0.85;
+    this.master.gain.value = 0.85;
     this.master.connect(ctx.destination);
 
     const comp = ctx.createDynamicsCompressor();
@@ -93,11 +96,11 @@ export class AudioEngine {
     comp.connect(this.master);
 
     this.musicGain = ctx.createGain();
-    this.musicGain.gain.value = 0.34;
+    this.musicGain.gain.value = this.musicMuted ? 0 : this.musicBase;
     this.musicGain.connect(comp);
 
     this.sfxGain = ctx.createGain();
-    this.sfxGain.gain.value = 0.5;
+    this.sfxGain.gain.value = this.sfxMuted ? 0 : 0.5;
     this.sfxGain.connect(comp);
 
     this.delay = ctx.createDelay(1);
@@ -118,9 +121,30 @@ export class AudioEngine {
   }
 
   setMuted(m: boolean) {
-    this.muted = m;
-    if (this.master && this.ctx)
-      this.master.gain.setTargetAtTime(m ? 0 : 0.85, this.ctx.currentTime, 0.05);
+    this.setMusicMuted(m);
+    this.setSfxMuted(m);
+  }
+
+  setMusicMuted(m: boolean) {
+    this.musicMuted = m;
+    this.muted = this.musicMuted && this.sfxMuted;
+    this.applyMusicVolume();
+  }
+
+  setSfxMuted(m: boolean) {
+    this.sfxMuted = m;
+    this.muted = this.musicMuted && this.sfxMuted;
+    if (this.sfxGain && this.ctx)
+      this.sfxGain.gain.setTargetAtTime(m ? 0 : 0.5, this.ctx.currentTime, 0.05);
+  }
+
+  private applyMusicVolume() {
+    if (this.musicGain && this.ctx)
+      this.musicGain.gain.setTargetAtTime(
+        this.musicMuted ? 0 : this.musicBase,
+        this.ctx.currentTime,
+        0.05,
+      );
   }
 
   setIntensity(v: number) {
@@ -147,7 +171,8 @@ export class AudioEngine {
   }
 
   setMusicVolume(v: number) {
-    if (this.musicGain && this.ctx) this.musicGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1);
+    this.musicBase = v;
+    this.applyMusicVolume();
   }
 
   private schedule() {

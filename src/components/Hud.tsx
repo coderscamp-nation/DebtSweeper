@@ -41,10 +41,64 @@ const CHIPS: { k: keyof HudState["levels"]; label: string; color: string }[] = [
   { k: "consolidate", label: "CON", color: "#a97bff" },
 ];
 
+export interface AudioControls {
+  musicMuted: boolean;
+  sfxMuted: boolean;
+  onToggleMusic: () => void;
+  onToggleSfx: () => void;
+}
+
+export function AudioButtons({ musicMuted, sfxMuted, onToggleMusic, onToggleSfx }: AudioControls) {
+  const btn =
+    "relative grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/[0.07] backdrop-blur-md transition active:scale-95";
+  return (
+    <>
+      <button
+        onClick={onToggleMusic}
+        className={btn}
+        aria-label={musicMuted ? "Unmute music" : "Mute music"}
+        title={musicMuted ? "Music: OFF" : "Music: ON"}
+        style={{ opacity: musicMuted ? 0.45 : 1 }}
+      >
+        <span className="font-display text-[13px] font-black leading-none text-cyan-300">♫</span>
+        <span className="absolute bottom-1 font-display text-[6px] tracking-widest text-white/50">
+          MUS
+        </span>
+        {musicMuted && (
+          <span className="absolute h-[2px] w-6 rotate-[-24deg] rounded bg-rose-400" />
+        )}
+      </button>
+      <button
+        onClick={onToggleSfx}
+        className={btn}
+        aria-label={sfxMuted ? "Unmute sound effects" : "Mute sound effects"}
+        title={sfxMuted ? "SFX: OFF" : "SFX: ON"}
+        style={{ opacity: sfxMuted ? 0.45 : 1 }}
+      >
+        <span className="font-display text-[11px] font-black leading-none text-amber-300">SFX</span>
+        <span className="absolute bottom-1 font-display text-[6px] tracking-widest text-white/50">
+          {sfxMuted ? "OFF" : "ON"}
+        </span>
+        {sfxMuted && (
+          <span className="absolute h-[2px] w-6 rotate-[-24deg] rounded bg-rose-400" />
+        )}
+      </button>
+    </>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* TOP BAR — lives above the canvas, never covers playfield            */
 /* ------------------------------------------------------------------ */
-export function HudTop({ hud, onPause }: { hud: HudState; onPause: () => void }) {
+export function HudTop({
+  hud,
+  onPause,
+  audio,
+}: {
+  hud: HudState;
+  onPause: () => void;
+  audio: AudioControls;
+}) {
   return (
     <div className="flex shrink-0 items-center justify-between gap-2 px-3 pt-2 pb-1.5 md:px-4">
       <div className="min-w-0">
@@ -97,10 +151,12 @@ export function HudTop({ hud, onPause }: { hud: HudState; onPause: () => void })
             {hud.enemiesLeft} LEFT
           </div>
         </div>
+        <AudioButtons {...audio} />
         <button
           onClick={onPause}
           className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/[0.07] text-white/85 backdrop-blur-md active:scale-95"
           aria-label="Pause"
+          title="Pause (P)"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
             <rect x="6" y="4" width="4" height="16" rx="1" />

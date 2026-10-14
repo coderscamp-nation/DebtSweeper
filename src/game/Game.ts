@@ -1171,7 +1171,7 @@ export class Game {
     this.blocksThisWave = 0;
     this.blockTimer = bossWave
       ? rand(3, 5)
-      : w >= 25
+      : w >= 50
         ? rand(6, 10)
         : rand(5, 9) * this.blockRate().interval;
     audio.startStage(w);
@@ -1226,32 +1226,30 @@ export class Game {
   /**
    * Vault drop schedule.
    *  Waves  1-10 : full rate, unchanged.
-   *  Waves 11-15 : slightly slower.
-   *  Waves 16-20 : slower again.
-   *  Waves 21-24 : slower again.
-   *  Waves 25+   : hard-capped at exactly ONE vault per wave.
+   *  Waves 11-49 : slow taper — longer gaps, lower roll chance, shrinking
+   *                per-wave cap (always more than 1).
+   *  Waves 50+   : hard-capped at exactly ONE vault per wave.
+   *  Boss waves  : always 3 guaranteed support drops, regardless of depth.
    */
   blockRate() {
     const w = this.wave;
     // Boss waves always supply support drops, no matter how deep you are.
     if (this.isBossWave) return { interval: 0.55, chance: 1, maxPerWave: 3, concurrent: 2 };
-    if (w >= 25) return { interval: 1, chance: 1, maxPerWave: 1, concurrent: 1 };
+    if (w >= 50) return { interval: 1, chance: 1, maxPerWave: 1, concurrent: 1 };
     if (w <= 10) return { interval: 1, chance: 1, maxPerWave: 99, concurrent: 2 };
-    // one step of slowdown per 5-wave band past wave 10
-    const band = Math.ceil((w - 10) / 5); // 1 → 2 → 3
-    return {
-      interval: 1 + band * 0.3, // 1.3× → 1.6× → 1.9× longer gaps
-      chance: 1 - band * 0.12, // 88% → 76% → 64% per attempt
-      maxPerWave: Math.max(2, 5 - band), // 4 → 3 → 2 vaults per wave
-      concurrent: band >= 3 ? 1 : 2,
-    };
+    // gradual slowdown across 10-wave bands inching toward wave 50
+    if (w <= 19) return { interval: 1.12, chance: 0.94, maxPerWave: 6, concurrent: 2 };
+    if (w <= 29) return { interval: 1.3, chance: 0.87, maxPerWave: 5, concurrent: 2 };
+    if (w <= 39) return { interval: 1.55, chance: 0.78, maxPerWave: 4, concurrent: 2 };
+    if (w <= 44) return { interval: 1.8, chance: 0.7, maxPerWave: 3, concurrent: 1 };
+    return { interval: 2.05, chance: 0.62, maxPerWave: 2, concurrent: 1 }; // 45-49
   }
 
   nextBlockDelay() {
     const r = this.blockRate();
     // Boss waves: steady support drops throughout the fight.
     if (this.isBossWave) return rand(7, 11);
-    if (this.wave >= 25) {
+    if (this.wave >= 50) {
       // single guaranteed vault, dropped early-ish in the wave
       return rand(7, 12);
     }
@@ -1637,7 +1635,7 @@ export class Game {
       } else this.actives[key] = v;
     }
 
-    // --- bonus vault blocks (steady for 10 waves, then tapering to 1/wave) ---
+    // --- bonus vault blocks (steady for 10 waves, tapering to 1/wave at 50) ---
     if (this.waveActive) {
       const rate = this.blockRate();
       const underCap = this.blocksThisWave < rate.maxPerWave;
@@ -1645,8 +1643,8 @@ export class Game {
         this.blockTimer -= dt;
         if (this.blockTimer <= 0 && this.blocks.length < rate.concurrent) {
           this.blockTimer = this.nextBlockDelay();
-          // boss waves and wave 25+ guarantee their vaults; earlier bands roll
-          if (this.isBossWave || this.wave >= 25 || Math.random() < rate.chance) {
+          // boss waves and wave 50+ guarantee their vaults; earlier bands roll
+          if (this.isBossWave || this.wave >= 50 || Math.random() < rate.chance) {
             this.blocksThisWave++;
             this.spawnBlock();
           }
